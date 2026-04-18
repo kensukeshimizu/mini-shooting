@@ -335,6 +335,7 @@
         if (state !== 'playing') return;
         if (fireTick > 0) return;
         bullets.push({ x: player.x, y: player.y - 18, r: 4, v: 5 });
+        playShootSound();
         fireTick = 32;
       }
 
