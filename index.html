@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Mini Shooting</title>
+  <style>
+    :root {
+      --bg1: #031028;
+      --bg2: #071d45;
+      --panel: rgba(255,255,255,0.08);
+      --panel-border: rgba(255,255,255,0.12);
+      --text: #eef4ff;
+      --muted: #afc2ea;
+      --accent: #65b8ff;
+      --danger: #ff6d6d;
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at top, #0a2252 0%, var(--bg1) 45%, #020713 100%);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px);
+    }
+    .app {
+      width: min(100vw, 520px);
+      height: 100%;
+      display: grid;
+      grid-template-rows: auto 1fr auto auto;
+      gap: 12px;
+    }
+    .title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding-top: 6px;
+    }
+    .hud {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      padding: 14px 16px;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-weight: 600;
+      font-size: 16px;
+    }
+    .hud div:nth-child(2) { text-align: center; }
+    .hud div:nth-child(3) { text-align: right; }
+    .num { color: var(--accent); }
+    .wrap {
+      position: relative;
+      min-height: 320px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(180deg, #000814 0%, #001435 100%);
+      box-shadow: inset 0 0 60px rgba(0,0,0,0.25);
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      background: transparent;
+    }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(3, 10, 22, 0.55);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      transition: opacity .18s ease;
+      z-index: 5;
+    }
+    .overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .card {
+      width: min(86%, 300px);
+      background: rgba(18, 30, 57, 0.92);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 22px;
+      padding: 20px 18px 16px;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    }
+    .card h1 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+    .card p {
+      margin: 0 0 14px;
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+    .btn {
+      appearance: none;
+      border: 0;
+      color: white;
+      background: linear-gradient(180deg, #4ca8ff, #2f7cff);
+      border-radius: 16px;
+      padding: 14px 18px;
+      min-width: 120px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      box-shadow: 0 8px 24px rgba(50,124,255,.35);
+      cursor: pointer;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .left-controls, .right-controls {
+      display: grid;
+      gap: 12px;
+    }
+    .left-controls { grid-template-columns: 1fr 1fr; }
+    .right-controls { grid-template-columns: 1fr 1fr; }
+    .control {
+      appearance: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+      border-radius: 22px;
+      min-height: 74px;
+      font-size: 22px;
+      font-weight: 800;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      touch-action: manipulation;
+    }
+    .control.action { font-size: 18px; letter-spacing: .3px; }
+    .guide {
+      padding: 14px 16px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(101,184,255,0.12);
+      border: 1px solid rgba(101,184,255,0.28);
+      color: #d9ebff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    @media (max-height: 780px) {
+      .title { font-size: 18px; }
+      .control { min-height: 64px; }
+      .guide { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title">Mini Shooting 🚀</div>
+
+    <div class="hud">
+      <div>Score: <span class="num" id="score">0</span></div>
+      <div>Life: <span class="num" id="life">3</span></div>
+      <div>Best: <span class="num" id="best">0</span></div>
+    </div>
+
+    <div class="wrap" id="gameWrap">
+      <canvas id="game"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="card">
+          <h1 id="overlayTitle">TAP TO START</h1>
+          <p id="overlayText">敵を撃ってスコアを伸ばします。3回被弾でゲームオーバー。<br>iPhoneは下のボタンでも操作できます。</p>
+          <button class="btn" id="startBtn">START</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="left-controls">
+        <button class="control" id="leftBtn">◀︎</button>
+        <button class="control" id="rightBtn">▶︎</button>
+      </div>
+      <div class="right-controls">
+        <button class="control action" id="shootBtn">SHOT</button>
+        <button class="control action" id="retryBtn">RETRY</button>
+      </div>
+    </div>
+
+    <div class="guide">
+      <div class="chips">
+        <span class="chip">iPhone: タップ操作</span>
+        <span class="chip">PC: ← → / A D / Space</span>
+      </div>
+      画面の下で左右移動、SHOTで発射。ゲーム画面を左右になぞっても移動できます。<br>
+      Safari / Chrome / GitHub Pages / Netlify でそのまま動く、1ファイル完結版です。
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      const canvas = document.getElementById('game');
+      const ctx = canvas.getContext('2d');
+      const wrap = document.getElementById('gameWrap');
+      const scoreEl = document.getElementById('score');
+      const lifeEl = document.getElementById('life');
+      const bestEl = document.getElementById('best');
+      const overlay = document.getElementById('overlay');
+      const overlayTitle = document.getElementById('overlayTitle');
+      const overlayText = document.getElementById('overlayText');
+      const startBtn = document.getElementById('startBtn');
+      const retryBtn = document.getElementById('retryBtn');
+      const leftBtn = document.getElementById('leftBtn');
+      const rightBtn = document.getElementById('rightBtn');
+      const shootBtn = document.getElementById('shootBtn');
+
+      let W = 0;
+      let H = 0;
+      let dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      let anim = 0;
+      let state = 'ready';
+      let spawnTick = 0;
+      let fireTick = 0;
+      let stars = [];
+      let bullets = [];
+      let enemies = [];
+      let particles = [];
+      let keys = { left: false, right: false, shoot: false };
+      let touchX = null;
+
+      const bestKey = 'mini_shooting_best_v1';
+      let best = Number(localStorage.getItem(bestKey) || 0);
+      let score = 0;
+      let life = 3;
+      let player = { x: 0, y: 0, w: 36, h: 40, speed: 6 };
+
+      bestEl.textContent = best;
+
+      function resize() {
+        const rect = wrap.getBoundingClientRect();
+        W = Math.floor(rect.width);
+        H = Math.floor(rect.height);
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+        canvas.style.width = W + 'px';
+        canvas.style.height = H + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        if (!stars.length) initStars();
+        if (!player.x) {
+          player.x = W / 2;
+          player.y = H - 50;
+        } else {
+          player.y = H - 50;
+          player.x = Math.max(player.w / 2, Math.min(W - player.w / 2, player.x));
+        }
+      }
+
+      function initStars() {
+        stars = Array.from({ length: 70 }, () => ({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          s: Math.random() * 2 + 0.4,
+          v: Math.random() * 1.1 + 0.4,
+        }));
+      }
+
+      function resetGame() {
+        score = 0;
+        life = 3;
+        bullets = [];
+        enemies = [];
+        particles = [];
+        spawnTick = 0;
+        fireTick = 0;
+        touchX = null;
+        player.x = W / 2;
+        player.y = H - 50;
+        updateHud();
+      }
+
+      function startGame() {
+        resetGame();
+        state = 'playing';
+        overlay.classList.add('hidden');
+      }
+
+      function gameOver() {
+        state = 'over';
+        best = Math.max(best, score);
+        localStorage.setItem(bestKey, String(best));
+        bestEl.textContent = best;
+        overlayTitle.textContent = 'GAME OVER';
+        overlayText.innerHTML = `スコア: <b>${score}</b><br>もう一度遊ぶなら START または RETRY をタップ`;
+        overlay.classList.remove('hidden');
+      }
+
+      function updateHud() {
+        scoreEl.textContent = score;
+        lifeEl.textContent = life;
+        bestEl.textContent = best;
+      }
+
+      function shoot() {
+        if (state !== 'playing') return;
+        if (fireTick > 0) return;
+        bullets.push({ x: player.x, y: player.y - 18, r: 4, v: 8.5 });
+        fireTick = 9;
+      }
+
+      function spawnEnemy() {
+        const size = 18 + Math.random() * 10;
+        const speed = 1.8 + Math.random() * 2.2 + Math.min(score * 0.012, 1.6);
+        enemies.push({
+          x: size + Math.random() * (W - size * 2),
+          y: -size - 10,
+          r: size,
+          v: speed,
+          wiggle: Math.random() * Math.PI * 2,
+          hp: 1,
+        });
+      }
+
+      function explode(x, y, color = '#7fc7ff', count = 10) {
+        for (let i = 0; i < count; i++) {
+          const ang = Math.random() * Math.PI * 2;
+          const speed = 1 + Math.random() * 3.2;
+          particles.push({
+            x, y,
+            dx: Math.cos(ang) * speed,
+            dy: Math.sin(ang) * speed,
+            life: 16 + Math.random() * 14,
+            color,
+          });
+        }
+      }
+
+      function clamp(n, min, max) {
+        return Math.max(min, Math.min(max, n));
+      }
+
+      function update() {
+        if (state === 'playing') {
+          if (keys.left) player.x -= player.speed;
+          if (keys.right) player.x += player.speed;
+          if (touchX !== null) {
+            player.x += (touchX - player.x) * 0.28;
+          }
+          player.x = clamp(player.x, player.w / 2 + 6, W - player.w / 2 - 6);
+
+          if (keys.shoot) shoot();
+          if (fireTick > 0) fireTick--;
+
+          spawnTick++;
+          const spawnGap = Math.max(22, 55 - Math.floor(score / 6));
+          if (spawnTick >= spawnGap) {
+            spawnTick = 0;
+            spawnEnemy();
+          }
+
+          for (const s of stars) {
+            s.y += s.v;
+            if (s.y > H) { s.y = -2; s.x = Math.random() * W; }
+          }
+
+          for (let i = bullets.length - 1; i >= 0; i--) {
+            const b = bullets[i];
+            b.y -= b.v;
+            if (b.y < -20) bullets.splice(i, 1);
+          }
+
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            e.y += e.v;
+            e.x += Math.sin((e.y + e.wiggle) * 0.03) * 1.2;
+
+            if (e.y - e.r > H + 10) {
+              enemies.splice(i, 1);
+              continue;
+            }
+
+            const hitPlayer = Math.hypot(e.x - player.x, e.y - player.y) < e.r + 18;
+            if (hitPlayer) {
+              enemies.splice(i, 1);
+              explode(player.x, player.y, '#ff9a9a', 14);
+              life--;
+              updateHud();
+              if (life <= 0) {
+                gameOver();
+                break;
+              }
+            }
+          }
+
+          for (let i = enemies.length - 1; i >= 0; i--) {
+            const e = enemies[i];
+            let destroyed = false;
+            for (let j = bullets.length - 1; j >= 0; j--) {
+              const b = bullets[j];
+              if (Math.hypot(e.x - b.x, e.y - b.y) < e.r + b.r) {
+                bullets.splice(j, 1);
+                enemies.splice(i, 1);
+                explode(e.x, e.y, '#79beff', 12);
+                score += 10;
+                updateHud();
+                destroyed = true;
+                break;
+              }
+            }
+            if (destroyed) continue;
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.dx;
+          p.y += p.dy;
+          p.dx *= 0.98;
+          p.dy *= 0.98;
+          p.life -= 1;
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+      }
+
+      function drawShip(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = '#d9ecff';
+        ctx.beginPath();
+        ctx.moveTo(0, -20);
+        ctx.lineTo(14, 16);
+        ctx.lineTo(5, 9);
+        ctx.lineTo(0, 16);
+        ctx.lineTo(-5, 9);
+        ctx.lineTo(-14, 16);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#5ab4ff';
+        ctx.beginPath();
+        ctx.moveTo(0, -9);
+        ctx.lineTo(5, 6);
+        ctx.lineTo(-5, 6);
+        ctx.closePath();
+        ctx.fill();
+
+        if (state === 'playing') {
+          ctx.fillStyle = 'rgba(255,170,90,0.9)';
+          ctx.beginPath();
+          ctx.moveTo(-4, 16);
+          ctx.lineTo(0, 28 + Math.random() * 5);
+          ctx.lineTo(4, 16);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawEnemy(e) {
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.fillStyle = '#ff6d6d';
+        ctx.beginPath();
+        ctx.arc(0, 0, e.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#ffeaea';
+        ctx.beginPath();
+        ctx.arc(-e.r * 0.28, -e.r * 0.1, e.r * 0.12, 0, Math.PI * 2);
+        ctx.arc(e.r * 0.28, -e.r * 0.1, e.r * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, W, H);
+
+        const g = ctx.createLinearGradient(0, 0, 0, H);
+        g.addColorStop(0, '#000814');
+        g.addColorStop(1, '#001635');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, W, H);
+
+        for (const s of stars) {
+          ctx.fillStyle = `rgba(210,230,255,${0.45 + s.s * 0.12})`;
+          ctx.fillRect(s.x, s.y, s.s, s.s);
+        }
+
+        for (const b of bullets) {
+          ctx.fillStyle = '#83cbff';
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        enemies.forEach(drawEnemy);
+        drawShip(player.x, player.y);
+
+        for (const p of particles) {
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = Math.max(0, p.life / 24);
+          ctx.fillRect(p.x, p.y, 3, 3);
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      function loop() {
+        update();
+        draw();
+        anim = requestAnimationFrame(loop);
+      }
+
+      function setMoveLeft(v) { keys.left = v; if (v) keys.right = false; }
+      function setMoveRight(v) { keys.right = v; if (v) keys.left = false; }
+
+      function pressStartLike() {
+        if (state === 'ready' || state === 'over') {
+          overlayTitle.textContent = 'TAP TO START';
+          overlayText.innerHTML = '敵を撃ってスコアを伸ばします。3回被弾でゲームオーバー。<br>iPhoneは下のボタンでも操作できます。';
+          startGame();
+        }
+      }
+
+      function bindHold(btn, onStart, onEnd) {
+        const start = (e) => { e.preventDefault(); onStart(); pressStartLike(); };
+        const end = (e) => { if (e) e.preventDefault(); onEnd(); };
+        btn.addEventListener('touchstart', start, { passive: false });
+        btn.addEventListener('touchend', end, { passive: false });
+        btn.addEventListener('touchcancel', end, { passive: false });
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', end);
+        btn.addEventListener('mouseleave', end);
+      }
+
+      bindHold(leftBtn, () => setMoveLeft(true), () => setMoveLeft(false));
+      bindHold(rightBtn, () => setMoveRight(true), () => setMoveRight(false));
+      bindHold(shootBtn, () => { keys.shoot = true; shoot(); }, () => { keys.shoot = false; });
+      retryBtn.addEventListener('click', (e) => { e.preventDefault(); startGame(); });
+      retryBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startGame(); }, { passive: false });
+
+      startBtn.addEventListener('click', (e) => { e.preventDefault(); pressStartLike(); });
+      startBtn.addEventListener('touchstart', (e) => { e.preventDefault(); pressStartLike(); }, { passive: false });
+      overlay.addEventListener('click', pressStartLike);
+      overlay.addEventListener('touchstart', (e) => { e.preventDefault(); pressStartLike(); }, { passive: false });
+
+      wrap.addEventListener('touchstart', (e) => {
+        const t = e.touches[0];
+        const rect = wrap.getBoundingClientRect();
+        touchX = clamp(t.clientX - rect.left, 20, W - 20);
+        pressStartLike();
+        e.preventDefault();
+      }, { passive: false });
+      wrap.addEventListener('touchmove', (e) => {
+        const t = e.touches[0];
+        const rect = wrap.getBoundingClientRect();
+        touchX = clamp(t.clientX - rect.left, 20, W - 20);
+        e.preventDefault();
+      }, { passive: false });
+      wrap.addEventListener('touchend', (e) => {
+        touchX = null;
+        e.preventDefault();
+      }, { passive: false });
+      wrap.addEventListener('mousedown', (e) => {
+        const rect = wrap.getBoundingClientRect();
+        touchX = clamp(e.clientX - rect.left, 20, W - 20);
+        pressStartLike();
+      });
+      window.addEventListener('mouseup', () => { touchX = null; });
+      window.addEventListener('mousemove', (e) => {
+        if (touchX === null || e.buttons !== 1) return;
+        const rect = wrap.getBoundingClientRect();
+        touchX = clamp(e.clientX - rect.left, 20, W - 20);
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') { keys.left = true; pressStartLike(); }
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') { keys.right = true; pressStartLike(); }
+        if (e.key === ' ' || e.code === 'Space') { keys.shoot = true; shoot(); pressStartLike(); e.preventDefault(); }
+        if (e.key === 'r' || e.key === 'R') startGame();
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+        if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+        if (e.key === ' ' || e.code === 'Space') keys.shoot = false;
+      });
+
+      window.addEventListener('resize', resize);
+      window.addEventListener('orientationchange', () => setTimeout(resize, 100));
+
+      resize();
+      resetGame();
+      draw();
+      cancelAnimationFrame(anim);
+      loop();
+    })();
+  </script>
+</body>
+</html>
