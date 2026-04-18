@@ -438,7 +438,7 @@
                 bullets.splice(j, 1);
                 enemies.splice(i, 1);
                 explode(e.x, e.y, '#79beff', 12);
-                score += 10;
+                score += e.fast ? 20 : 10;
                 updateHud();
                 destroyed = true;
                 break;
