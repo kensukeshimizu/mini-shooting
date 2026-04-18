@@ -335,7 +335,7 @@
         if (state !== 'playing') return;
         if (fireTick > 0) return;
         bullets.push({ x: player.x, y: player.y - 18, r: 4, v: 5 });
-        fireTick = 9;
+        fireTick = 18;
       }
 
       function spawnEnemy() {
@@ -344,7 +344,7 @@
   const isFast = Math.random() < 0.18;
 
   const speed = isFast
-    ? 1.4 + Math.random() * 0.6
+    ? 1.4 + Math.random() * 3
     : 0.35 + Math.random() * 0.35;
 
   enemies.push({
