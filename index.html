@@ -341,7 +341,7 @@
       function spawnEnemy() {
   const size = 18 + Math.random() * 10;
 
-  const isFast = Math.random() < 0.5;
+  const isFast = Math.random() < 0.18;
 
   const speed = isFast
     ? 1.4 + Math.random() * 0.6
@@ -496,7 +496,7 @@
       function drawEnemy(e) {
         ctx.save();
         ctx.translate(e.x, e.y);
-        ctx.fillStyle = '#ff6d6d';
+        ctx.fillStyle = e.fast ? '#ffd166' : '#ff6d6d';
         ctx.beginPath();
         ctx.arc(0, 0, e.r, 0, Math.PI * 2);
         ctx.fill();
