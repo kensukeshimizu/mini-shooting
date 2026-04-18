@@ -263,7 +263,7 @@
       let best = Number(localStorage.getItem(bestKey) || 0);
       let score = 0;
       let life = 3;
-      let player = { x: 0, y: 0, w: 36, h: 40, speed: 6 };
+      let player = { x: 0, y: 0, w: 36, h: 40, speed: 3 };
 
       bestEl.textContent = best;
 
@@ -334,13 +334,13 @@
       function shoot() {
         if (state !== 'playing') return;
         if (fireTick > 0) return;
-        bullets.push({ x: player.x, y: player.y - 18, r: 4, v: 8.5 });
+        bullets.push({ x: player.x, y: player.y - 18, r: 4, v: 5 });
         fireTick = 9;
       }
 
       function spawnEnemy() {
         const size = 18 + Math.random() * 10;
-        const speed = 1.8 + Math.random() * 2.2 + Math.min(score * 0.012, 1.6);
+        const speed = 0.5 + Math.random() * 0.5
         enemies.push({
           x: size + Math.random() * (W - size * 2),
           y: -size - 10,
